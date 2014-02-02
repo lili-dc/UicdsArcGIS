@@ -18,30 +18,7 @@
     
 <!-- BEGIN SOR -->
   
-  <style type="text/css">
-#incidents
-{
-	font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
-	border-collapse: collapse;
-}
-#incidents td, #incidents th 
-{
-	font-size: 1em;
-	border: 1px solid LightSkyBlue;
-	padding: 3px 7px 2px 7px;
-}
 
-#incidents tr.alt td 
-{
-color:#000000;
-background-color:Lavender ;
-}
-
-.selected tr {
-  border:2px solid black;
-}
-
-  </style>
 
 
   <script type="text/javascript" src="javascript/angular.min.js"></script>
@@ -293,7 +270,7 @@ background-color:Lavender ;
             
             
             <!-- SOR START -->
-            <button data-dojo-type="dijit/form/Button" type="button" onClick="uicdsDialog.show();" class="shadow" style="position:absolute; right:20px; top:35px; z-index:38;" showLabel="false" iconClass="twitterIcon"> UICDS </button>
+            <button data-dojo-type="dijit/form/Button" type="button" onClick="uicdsDialog.show();" class="shadow" style="position:absolute; right:20px; top:35px; z-index:38;" showLabel="false" iconClass="uicdsIcon"> UICDS </button>
             
            <div data-dojo-type="dijit/Dialog" data-dojo-id="uicdsDialog" title="ArcGIS UICDS Widget" style="width: 600px;">
       <div data-dojo-type="dijit/layout/BorderContainer" design="sidebar" style="min-width: 1em; min-height: 1px; z-index: 0; width: 100%; height: 330px;">
@@ -403,10 +380,11 @@ background-color:Lavender ;
               
 
       <div data-dojo-type="dojox/layout/ContentPane" extractContent="false" preventCache="false" preload="false" refreshOnShow="false" doLayout="true" region="center" splitter="true" style="overflow:scroll">
+      
        <table ng-table="tableParams" id="incidents" >
     <tbody ng-repeat="workproduct in workproducts" ng-click="getDetails2(workproducts.indexOf(workproduct))" class="{{selected}}">
         <tr class="ng-table-group" ng-class-odd="'alt'">
-            <td>
+            <td >
                <strong>{{workproduct.PackageMetadata[0].WorkProductProperties[0].AssociatedGroups[0].Identifier[0].text}}</strong>
             </td>
             <td>

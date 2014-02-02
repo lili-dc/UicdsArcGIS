@@ -276,6 +276,13 @@ background-image:none !important;
   height: 16px;
   padding-right:2px;
 }
+.uicdsIcon {
+  background-image: url(../images/uicdssm.png);
+  background-repeat:no-repeat;
+  width: 20px;
+  height: 19px;
+  padding-right:2px;
+}
 .emailIcon {
   background-image: url(../images/email.png);
   background-repeat:no-repeat;
@@ -563,3 +570,32 @@ background-image:none !important;
   overflow-y:auto !important;
   height:70% !important;
 }
+
+
+/* SpotOn Response Additions */
+
+#incidents
+{
+	font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+	border-collapse: collapse;
+}
+#incidents td, #incidents th 
+{
+	font-size: 1em;
+	border: 1px solid LightSkyBlue;
+	padding: 3px 7px 2px 7px;
+}
+
+#incidents tr.alt td 
+{
+    color:#000000;
+    background-color:Lavender ;
+}
+
+#incidents .selected td, #incidents .selected tr.alt td {
+	font-style:italic;
+	font-weight:bolder;
+	color: blue;
+	border: 2px solid black !important;
+}
+

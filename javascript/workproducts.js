@@ -1,6 +1,7 @@
 // JavaScript Document
 function WorkProductsController($scope, $http) {
 
+
     $scope.WorkProductNS = globals.workproductNS;
     $scope.IncidentManagementNS = globals.incidentmanagementNS;
 
@@ -120,6 +121,7 @@ function WorkProductsController($scope, $http) {
 		   registry.byId("addMapLayer_button").setAttribute('disabled', false);
 		   registry.byId("addMapFeature_button").setAttribute('disabled', false);
 		   registry.byId("igidBox").setValue(IgID);
+		   
        });
 	
 	   
@@ -128,6 +130,7 @@ function WorkProductsController($scope, $http) {
        }
        this.selected = 'selected';
        $scope.lastSelected = this;
+	   
 	   
 		
         $scope.currentWorkProduct = $scope.workproducts.indexOf(workproduct);
