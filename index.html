@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title></title>
+    <link rel="stylesheet" type="text/css" href="//js.arcgis.com/3.8/js/dojo/dijit/themes/claro/claro.css">
+    <link rel="stylesheet" type="text/css" href="//js.arcgis.com/3.8/js/dojo/dijit/themes/claro/document.css">
+
+    <link rel="stylesheet" type="text/css" href="//js.arcgis.com/3.8/js/dojo/dojox/layout/resources/FloatingPane.css">
+
+    <link rel="stylesheet" type="text/css" href="//js.arcgis.com/3.8/js/esri/css/esri.css" />
+
+    <link rel="stylesheet" type="text/css" href="css/layout.css">
+    <!--[if IE]>
+      <link rel="stylesheet" type="text/css" href="css/ie.css" />
+    <![endif]-->
+    
+    
+<!-- BEGIN SOR -->
+  
+  <style type="text/css">
+#incidents
+{
+	font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+	border-collapse: collapse;
+}
+#incidents td, #incidents th 
+{
+	font-size: 1em;
+	border: 1px solid LightSkyBlue;
+	padding: 3px 7px 2px 7px;
+}
+
+#incidents tr.alt td 
+{
+color:#000000;
+background-color:Lavender ;
+}
+
+.selected tr {
+  border:2px solid black;
+}
+
+  </style>
+
+
+  <script type="text/javascript" src="javascript/angular.min.js"></script>
+  <script type="text/javascript" src="javascript/jquery-1.10.2.min.js"></script>
+  <script type="text/javascript" src="javascript/angular-dojo.js"></script>
+  <script type="text/javascript" src="javascript/json2xml.js"></script>
+  <script type="text/javascript" src="javascript/xmlToJSON.min.js"></script>
+
+  <script type="text/javascript" src="javascript/util.js"></script>
+  <script type="text/javascript" src="javascript/globals.js"></script>
+  <script type="text/javascript" src="javascript/workproducts.js"></script>
+  
+  <script>
+     <!-- Load Angular dojo module -->
+  angular.module('dojoUICDSApp', ['angular-dojo']);
+  </script>
+
+<!-- END SOR -->
+    
+    
+    
+    <script type="text/javascript">
+    var path_location = location.pathname.replace(/\/[^/]+$/, '');
+    var dojoConfig = {
+      parseOnLoad: true,
+      packages: [{
+        name: "esriTemplate",
+        location: path_location
+      }, {
+        name: "utilities",
+        location: path_location + '/javascript'
+      }, {
+        name: "apl",
+        location: path_location + '/apl'
+      },{
+        name: "templateConfig",
+        location: path_location
+      }]
+    };
+    </script>
+    <script type="text/javascript" src="//js.arcgis.com/3.8/">
+
+    </script>
+    <script type="text/javascript">
+      dojo.require("esri.layout");
+    </script>
+
+    <script type="text/javascript" src="javascript/layout.js">
+    </script>
+    <script type="text/javascript">
+      dojo.require("utilities.App");
+      dojo.require("templateConfig.commonConfig");
+      dojo.require("dijit.dijit");
+      dojo.require("dojox.layout.TableContainer");
+	  dojo.require("dojox/layout/ScrollPane");
+
+
+      var i18n;
+      dojo.ready(function(){
+
+        i18n = dojo.i18n.getLocalization("esriTemplate","template");
+        var  defaults = {
+        //The ID for the map from ArcGIS.com
+        //webmap: "f5b13dbed07c46cdb783cf361833aa6b",
+        webmap: "165b4f9822c949f88af92b4cb1c5bf7f",
+		//Modify this to point to your sharing service URL if you are using the portal
+        sharingurl: "http://www.arcgis.com",//for example: "http://www.arcgis.com",
+        //The id for the web mapping application item that contains configuration info - in most
+        ////When editing you need to specify a proxyurl (see below) if the service is on a different domain
+        //Specify a proxy url if you will be editing, using the elevation profile or have secure services or web maps that are not shared with everyone.
+        proxyurl: "",
+        //cases this will be null.
+        appid: "",
+        //set to true to display the title
+        displaytitle: true,
+        //Enter a title, if no title is specified, the webmap's title is used.
+        title: "",
+        //Enter a description for the application. This description will appear in the left pane
+        //if no description is entered the webmap description will be used.
+        description: "",
+        //specify an owner for the app - used by the print option. The default value will be the web map's owner
+        owner: '',
+        //Specify a color theme for the app. Valid options are gray,blue,purple,green and orange
+        theme: 'gray',
+        //Optional tools - set to false to hide the tool
+        //set to false to hide the zoom slider on the map
+        displayslider: true,
+        displaymeasure: true,
+        displaybasemaps: true,
+        displayoverviewmap: true,
+        displayeditor: true,
+        displaylegend: true,
+        displaysearch: true,
+        displaylayerlist: true,
+        displaybookmarks: true,
+        displaydetails: true,
+        displaytimeslider: true,
+        displayprint: true,
+        displayprintlegend: false,
+        //i18n.viewer.main.scaleBarUnits,
+        //The elevation tool uses the  measurement tool to draw the lines. So if this is set
+        //to true then displaymeasure needs to be true too.
+        displayelevation: false,
+        //This option is used when the elevation chart is displayed to control what is displayed when users mouse over or touch the chart. When true, elevation gain/loss will be shown from the first location to the location under the cursor/finger.
+        showelevationdifference: false,
+        displayscalebar: true,
+        displayshare: true,
+        //Set to true to display the left panel on startup. The left panel can contain the legend, details and editor. Set to true to
+        //hide left panel on initial startup. 2
+        leftPanelVisibility: true,
+        //If the webmap uses Bing Maps data, you will need to provide your Bing Maps Key
+        bingmapskey: commonConfig.bingMapsKey,
+        //Get the default map units
+        units: commonConfig.units, 
+        //specify a group in ArcGIS.com that contains the basemaps to display in the basemap gallery
+        //example: title:'ArcGIS Online Basemaps' , owner:esri
+        basemapgroup: {
+          title: null,
+          owner: null
+        },
+        //Enter the URL's to the geometry service, print task and geocode service. 
+        helperServices: commonConfig.helperServices,
+        //Set the label in the nls file for your browsers language
+        printlayouts: [{
+          layout: 'Letter ANSI A Landscape',
+          label: i18n.tools.print.layouts.label1,
+          format: 'PDF'
+        }, {
+          layout: 'Letter ANSI A Portrait',
+          label: i18n.tools.print.layouts.label2,
+          format: 'PDF'
+        }, {
+          layout: 'Letter ANSI A Landscape',
+          label: i18n.tools.print.layouts.label3,
+          format: 'PNG32'
+        }, {
+          layout: 'Letter ANSI A Portrait',
+          label: i18n.tools.print.layouts.label4,
+          format: 'PNG32'
+        }],
+        printlayout: false,
+        printformat: "PNG32",
+        //Specify the geocoder options. By default uses the geocoder widget with the default locators. If you specify a url value then that locator will be used.
+        placefinder: {
+          "url": "",
+          "countryCode":"",
+          "currentExtent":false,
+          "placeholder": "",
+          "singlelinefieldname":""
+        },
+        //when true locations searches use the current map extent. 
+        searchextent: false,
+        //Set link text and url parameters if you want to display clickable links in the upper right-corner
+        //of the application.
+        //ArcGIS.com. Enter link values for the link1 and link2 and text to add links. For example
+        //url:'http://www.esri.com',text:'Esri'
+        link1: {
+          url: '',
+          text: ''
+        },
+        link2: {
+          url: '',
+          text: ''
+        },
+        //specify the width of the panel that holds the editor, legend, details
+        leftpanewidth: 228,
+        //Restrict the map's extent to the initial extent of the web map. When true users
+        //will not be able to pan/zoom outside the initial extent.
+        constrainmapextent: false,
+        //Provide an image and url for a logo that will be displayed as a clickable image
+        //in the lower right corner of the map. If nothing is specified then the esri logo will appear.
+        customlogo: {
+          image: '',
+          link: ''
+        },
+        //embed = true means the margins will be collapsed to just include the map no title or links
+        embed: false	
+      };
+
+
+        var app = new utilities.App(defaults);
+        app.init().then(function(options){
+            initMap(options);
+        });
+		
+		
+      });
+	  
+
+    </script>
+    
+
+    
+  </head>
+
+  <body class="claro" data-ng-app="dojoUICDSApp" ng-controller="WorkProductsController">
+    <div id="bc" data-dojo-type="dijit.layout.BorderContainer" data-dojo-props="design:'headline', gutters:false"
+    style="width:100%; height:100%;padding:0;">
+      <!-- Header Section-->
+      <div id="header" data-dojo-type="dijit.layout.ContentPane" data-dojo-props="region:'top'">
+        <!--Title dyanmically generated -->
+        <div id="nav" style='display:none;'>
+          <!-- links are dynamically generated-->
+          <ul>
+            <li id="link1List"></li>
+            <li>|</li>
+            <li id="link2List"></li>
+          </ul>
+        </div>
+      </div>
+      <!--End Header-->
+      <!-- Main Content Section (map, toolbars, left panel)-->
+      <div id="mainWindow" data-dojo-type="dijit.layout.ContentPane" data-dojo-props="region:'center'"
+      style="width:100%;height:100%;">
+        <div data-dojo-type="dijit.layout.BorderContainer" data-dojo-props="design:'headline',gutters:false"
+        style="width:100%;height:100%;padding:0;">
+          <!-- Toolbar (Search Basemap Measure)-->
+          <div id="toolbarContainer_bv" data-dojo-type="dijit.layout.ContentPane" data-dojo-props='region:"top"'>
+            <div data-dojo-type="dijit.Toolbar">
+              <div id="webmap-toolbar-left">
+                <!--Toolbar buttons (Legend, Details, Edit) created dynamically-->
+              </div>
+              <div id="webmap-toolbar-right">
+                <!--create the search tool-->
+              </div>
+              <div id="webmap-toolbar-center">
+                <!--Basemap,measure,share,time and layer list tools added if enabled-->
+              </div>
+            </div>
+          </div>
+          <!--End Toolbar-->
+          <!--Left Panel-->
+          <div data-dojo-type="dijit.layout.BorderContainer" id="leftPane" data-dojo-props="design:'headline', gutters:false,region:'left'"
+          style="height:100%;padding:0;display:none;"></div>
+          <!--End Left Panel-->
+          <!-- Map Section -->
+          <div id="map" data-dojo-type="dijit.layout.ContentPane" data-dojo-props='region:"center"' dir="ltr">
+            <div id="logo" class="logo" style="display:none;">
+              <!--If a logo is specified in config section then the logo will be added
+              to the map-->
+            </div>
+            <!--Floating window that contains the measure dijit-->
+            <div id="floater">
+              <div id="measureDiv"></div>
+            </div>
+            <!--Floating window contains the time slider-->
+            <div id="timeFloater" style='display:none;'></div>
+            
+            
+            
+            <!-- SOR START -->
+            <button data-dojo-type="dijit/form/Button" type="button" onClick="uicdsDialog.show();" class="shadow" style="position:absolute; right:20px; top:35px; z-index:38;" showLabel="false" iconClass="twitterIcon"> UICDS </button>
+            
+           <div data-dojo-type="dijit/Dialog" data-dojo-id="uicdsDialog" title="ArcGIS UICDS Widget" style="width: 600px;">
+      <div data-dojo-type="dijit/layout/BorderContainer" design="sidebar" style="min-width: 1em; min-height: 1px; z-index: 0; width: 100%; height: 330px;">
+    <div data-dojo-type="dijit/layout/ContentPane" extractContent="false" preventCache="false" preload="false" refreshOnShow="false" doLayout="true" region="top" splitter="true" maxSize="80" style="height: 30px;" minSize="80" style="position:relative">
+    <table>
+          <tbody id="tbody_0" class="HtmlWidget">
+        <tr>
+              <td><label for="uicdsURL"> UICDS URL:</label></td>
+              <td><input value="" type="text" data-dojo-type="dijit/form/TextBox" id="uicdsURL" intermediateChanges="false" trim="false" uppercase="false" lowercase="false" propercase="false" selectOnClick="false" style="width: 20em; left: 7px; top: 8px;">
+            </input></td>
+            </tr>
+      </tbody>
+        </table>
+    <div style="float:right; position:absolute; top:0; right:0"> <span class="dijit dijitReset dijitInline dijitButton" role="presentation" widgetid="uicdsConnectButton"> <span class="dijitReset dijitInline dijitButtonNode" role="presentation" ng-click="init()"> Get<br/>
+      Incidents </span> </span> </div>
+    <div style="float:clear"></div>
+  </div>
+      <div data-dojo-type="dijit/layout/ContentPane" extractContent="false" preventCache="false" preload="false" refreshOnShow="false" doLayout="true" region="right" splitter="true" minSize="95" maxSize="95" style="width: 78px;">
+              <button disabled style="display:inline-block; width: 75px;" id="addWebMap_button" data-dojo-type="dijit/form/Button" type="button">Share<br/>Web<br/>&nbsp;&nbsp;&nbsp;&nbsp;Map&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+				 <script type="dojo/method" data-dojo-event="onClick" data-dojo-args="evt">
+					require(["dijit/registry", "dijit/form/TextBox"], function(registry){ 
+                       registry.byId("dialogAddWebMap").set("title", "Add Web Map");
+					   registry.byId("mapURLBox").set("value", "https://web_map.com");
+					   registry.byId("dialogAddWebMap").show();
+                    });
+                 </script>
+              </button>
+
+              <button disabled style="display:block; width: 75px;" id="addMapLayer_button" data-dojo-type="dijit/form/Button" type="button" >Share<br/>Map<br/>&nbsp;&nbsp;&nbsp;Layer&nbsp;&nbsp;&nbsp;&nbsp;
+                 <script type="dojo/method" data-dojo-event="onClick" data-dojo-args="evt">
+                    require(["dijit/registry"], function(registry){
+					   registry.byId("dialogAddWebMap").set("title", "Add Map Layer");
+					   registry.byId("mapURLBox").set("value", "https://map_layer.com");
+                       registry.byId("dialogAddWebMap").show();
+                    });
+                 </script>
+              </button>
+              <button disabled id="addMapFeature_button" data-dojo-type="dijit/form/Button" type="button">Share<br/>
+              Map<br/>&nbsp;&nbsp;Feature&nbsp;&nbsp;
+              <script type="dojo/method" data-dojo-event="onClick" data-dojo-args="evt">
+                    require(["dijit/registry"], function(registry){
+					   registry.byId("dialogAddWebMap").set("title", "Add Web Feature");
+					   registry.byId("mapURLBox").set("value", "https://map_feature.com");
+                       registry.byId("dialogAddWebMap").show();
+                    });
+                 </script>
+              </button>
+              <button id="createIncident_button" data-dojo-type="dijit/form/Button" type="button">Create<br/>New<br/>&nbsp;&nbsp;Incident&nbsp;
+                 <script type="dojo/method" data-dojo-event="onClick" data-dojo-args="evt">
+                    require(["dijit/registry"], function(registry){
+						registry.byId("ci_dt").setValue(new Date());
+                        registry.byId("dialogCreateIncident").show();
+                    });
+                 </script>
+              </button>
+              <button id="addMyContent_button" data-dojo-type="dijit/form/Button" type="button">Add<br/>My<br/>&nbsp;&nbsp;Content&nbsp;
+                 <script type="dojo/method" data-dojo-event="onClick" data-dojo-args="evt">
+                    require(["dijit/registry"], function(registry){
+						registry.byId("dialogAddMyContent").show();
+                    });
+                 </script>
+              </button>
+  </div>
+  
+              <!-- Add Map Web, Layer or Feature Dialog -->
+              <div id="dialogAddWebMap" data-dojo-type="dijit/Dialog" title="" style="width:400px;">      
+                 <div data-dojo-type="dojox.layout.TableContainer" data-dojo-props="cols:1" id="tc1">
+                    <div data-dojo-type="dijit.form.TextBox" title="Map URL:" value="" id="mapURLBox"></div>
+                    <div data-dojo-type="dijit.form.TextBox" title="Referenced IG:" value="" id="igidBox"></div>
+                    <div data-dojo-type="dijit.form.TextBox" title="Layer Name:" value=""></div>
+                    <div data-dojo-type="dijit.form.TextBox" title="Layer Title:" value=""></div>
+                    <div data-dojo-type="dijit.form.TextBox" title="Abstract:" value=""></div>
+                    <div data-dojo-type="dijit.form.TextBox" title="SRS:" value=""></div>
+                 </div>
+                 <div data-dojo-type="dijit/form/Button" label="Submit"></div>
+              </div>
+              <!-- END Add Map Web, Layer or Feature Dialog -->
+
+              <!-- This is the Create Incident Dialog -->
+              <div id="dialogCreateIncident" data-dojo-type="dijit/Dialog" title="Create Incident" style="width:400px;">   
+                 <div data-dojo-type="dojox.layout.TableContainer" data-dojo-props="cols:1" id="tc2">
+                    <div data-dojo-type="dijit/form/Select" title="Type:" value="" id="ci_type">
+                       <span value="incident"><b>Incident</b></span>
+                       <span value="alert"><b>Alert</b></span>
+                    </div>
+                    <div data-dojo-type="dijit.form.TextBox" title="Date/Time:" id="ci_dt"></div>
+                    <div data-dojo-type="dijit.form.TextBox" title="Name:" id="ci_name"></div>
+                    <div data-dojo-type="dijit.form.TextBox" title="Location (Address):" id="ci_location"></div>
+                    <div data-dojo-type="dijit.form.TextBox" title="Latitude:" id="ci_lat"></div>
+                    <div data-dojo-type="dijit.form.TextBox" title="Longitude:" id="ci_lon"></div>
+                    <div data-dojo-type="dijit.form.TextBox" title="Description:" id="ci_desc"></div>
+                    <div data-dojo-type="dijit.form.TextBox" title="Status:" id="ci_status"></div>
+                    <div data-dojo-type="dijit.form.TextBox" title="Reason:" id="ci_reason"></div>
+                    <div data-dojo-type="dijit.form.TextBox" title="Disposition:" id="ci_disposition"></div>
+                 </div>
+                 <div data-dojo-type="dijit/form/Button" label="Submit" id="ci_submit"></div>
+              </div>
+              <!-- End Create Incident Dialog -->
+              
+              
+              
+              <!-- This is the My Content Dialog -->
+              <div id="dialogAddMyContent" data-dojo-type="dijit/Dialog" title="Add My Content" style="width:400px;">
+                  Will be added to My Content: <input type="text" data-dojo-type="dijit/form/TextBox" value="Some value" data-dojo-props="intermediateChanges:true" id="c_mapURLBox">
+              </div>
+              <!-- End AddMyContent Dialog -->
+              
+
+      <div data-dojo-type="dojox/layout/ContentPane" extractContent="false" preventCache="false" preload="false" refreshOnShow="false" doLayout="true" region="center" splitter="true" style="overflow:scroll">
+       <table ng-table="tableParams" id="incidents" >
+    <tbody ng-repeat="workproduct in workproducts" ng-click="getDetails2(workproducts.indexOf(workproduct))" class="{{selected}}">
+        <tr class="ng-table-group" ng-class-odd="'alt'">
+            <td>
+               <strong>{{workproduct.PackageMetadata[0].WorkProductProperties[0].AssociatedGroups[0].Identifier[0].text}}</strong>
+            </td>
+            <td>
+               {{workproduct.Digest[0].Event[0].Identifier[0].text}}
+            </td>
+        </tr>
+    </tbody>
+    </table>
+
+    </div>      
+          
+          
+</div> 
+           <!-- End Border Container -->
+</div> <!-- ENd Dialog Div -->
+
+
+
+            <!-- SOR END -->
+                       
+          </div>
+          <!--end Map section-->
+          
+        </div>
+      
+      
+      </div>
+      
+      
+      <div id="bottomPane" dojotype="dijit.layout.ContentPane" region="bottom"
+      gutters="false" style="display:none;margin:10px 5px;width:auto;height:275px;background-color:white;">
+      This is the bottom
+      </div>
+      <!-- End Main Content section-->
+    </div>
+    
+  </body>
+
+</html>
