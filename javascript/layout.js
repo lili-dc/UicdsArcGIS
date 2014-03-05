@@ -14,6 +14,10 @@ var configOptions;
 var allResults = null;
 
 var measure;
+var responseObj = null;
+var featureClickHandler = null;
+var kmzURL = null;
+var jsonURL = null;
 
 function initMap(options) {
 /*Patch to fix issue with floating panes used to display the measure and time panel. They
@@ -205,6 +209,22 @@ function createMap(webmapitem) {
 
 
 
+// SpotOnResponse additions for UICDS adapter
+
+    responseObj = response;
+    /*
+	 * Fix the button sizes
+	 */
+	 $("#addWebMap_button").width("65px");
+	 $("#addMapLayer_button").width("65px");
+	 $("#addMapFeature_button").width("65px");
+	 $("#createIncident_button").width("65px");
+	 $("#addMyContent_button").width("65px");
+	 
+	 leidosDemo();
+	 
+	 
+
         configOptions.owner = response.itemInfo.item.owner;
         document.title = configOptions.title || response.itemInfo.item.title;
         //add a title
@@ -321,6 +341,7 @@ function initUI(response) {
         var maxExtentGraphic = new esri.Graphic(clipPoly, symbol);
 
         map.graphics.add(maxExtentGraphic);
+		
     }
 
 
@@ -1938,3 +1959,243 @@ function adjustPopupSize() {
 
     map.infoWindow.resize(width, height);
 }
+
+
+
+function leidosDemo() {
+	
+	console.log("Leidos functions active...");
+	
+    dojo.connect(dijit.byId("addWebMap_button"), 'onClick', function(){
+        //Li Li Demonstrate how to get webmap details
+        console.log('Title: '+responseObj.itemInfo.item.title+
+            '\n\nID: '+responseObj.itemInfo.item.id+
+            '\n\nOwner: '+responseObj.itemInfo.item.owner+
+            '\n\nCreated: '+new Date(responseObj.itemInfo.item.created)+
+            '\n\nModified: '+new Date(responseObj.itemInfo.item.modified)+
+            '\n\nType: '+responseObj.itemInfo.item.type+
+            '\n\nName: '+responseObj.itemInfo.item.name+
+            '\n\nSummary: '+responseObj.itemInfo.item.snippet+
+            '\n\nDescription: '+responseObj.itemInfo.item.description+
+            '\n\nMap URL: http://www.arcgis.com/home/webmap/viewer.html?webmap='+responseObj.itemInfo.item.id
+        );
+		
+		var cdataText = "<![CDATA[" 
+		          + "<b>Title:</b>" + responseObj.itemInfo.item.title
+				  + "<b>ID:</b>" + responseObj.itemInfo.item.id
+				  + "<b>Owner:</b>" + responseObj.itemInfo.item.owner
+				  + "<b>Created:</b>" + +new Date(responseObj.itemInfo.item.created)
+				  + "<b>Modified:</b>" + new Date(responseObj.itemInfo.item.modified)
+				  + "<b>Type:</b>" + responseObj.itemInfo.item.type
+				  + "<b>Name:</b>" + responseObj.itemInfo.item.name
+				  + "<b>Summary:</b>" + responseObj.itemInfo.item.snippet
+				  + "<b>Description</b>" + responseObj.itemInfo.item.description
+				  + "]]>";
+				  
+		if (responseObj.itemInfo.item.name) {
+		   $("#mapName").val(responseObj.itemInfo.item.name);
+	    } else {
+           $("#mapName").val(responseObj.itemInfo.item.title);
+	    }
+        $("#mapTitle").val(responseObj.itemInfo.item.title);
+	    $("#mapURL").val('http://www.arcgis.com/home/webmap/viewer.html?webmap='+responseObj.itemInfo.item.id);	
+		$("#mapCData").val(cdataText);
+		
+		require(["dijit/registry", "dijit/form/TextBox"], function(registry){ 
+              registry.byId("dialogAddWebMap").set("title", "Add Web Map");
+			  registry.byId("dialogAddWebMap").show();
+        });
+		
+    });
+
+    dojo.connect(dijit.byId("addMapLayer_button"), 'onClick', function(){
+        	     /* 
+				  * Set the title of the AddWebMap Dialog and get a handle to it
+				  */
+				 require(["dijit/registry"], function(registry){
+					   registry.byId("dialogAddWebMap").set("title", "Add Map Layer");
+				 });
+				 
+                 var layers = responseObj.itemInfo.itemData.operationalLayers;
+				 require(["dijit/Dialog", "dojo/domReady!"], function(Dialog){
+                    layerDialog = new Dialog({
+                       title: "Select Layer",
+                       content: "",
+                       style: "width: 300px"
+                    });
+                 });
+				 
+				 var content = "<form id=\"layerForm\" dojoType=\"dijit.form.Form\" jsId=\"layerForm\">";
+                 dojo.forEach(layers, function (mapLayer, index) {
+                    if (mapLayer.layerObject && mapLayer.layerObject.visible) {
+					   content = content + "<input type='radio' data-dojo-type='dijit/form/RadioButton' " + 
+												   " name='radioGroup'" +
+												   " id='" + mapLayer.title +  "'" + 
+												   " value='" + mapLayer.url + "'/>" +
+										     "<label for=\"" + mapLayer.title + "\">" + "&nbsp;&nbsp;" + mapLayer.title + "</label> <br />"
+                       console.log('Title: '+mapLayer.title+'\nURL: '+mapLayer.url);
+                    }
+                 });  
+				 
+				 
+				 content = content + "<button id=\"layerSubmit\" data-dojo-type=\"dijit/form/Button\" type=\"button\">";
+				 content = content + "Choose</button>";
+				 content = content + "</form>"; 
+				 
+				 layerDialog.set("content", content);
+				 layerDialog.show();
+				 
+				 require(["dijit/Dialog", "dojo/domReady!"], function() {
+				    dojo.connect(dijit.byId("layerSubmit"), 'onClick', function(){
+                       require(["dijit/registry"], function(registry){
+					      
+						  var cdataText = "<![CDATA[" + "]]>";
+						  var urlVal = dijit.byId("layerForm").attr("value").radioGroup;
+					      registry.byId("mapURL").set("value", urlVal);
+						  
+						  if (responseObj.itemInfo.item.name) {
+		                     registry.byId("mapName").set("value", responseObj.itemInfo.item.name);
+	                      } else {
+                             registry.byId("mapName").set("value", responseObj.itemInfo.item.title);
+	                      }
+                          registry.byId("mapTitle").set("value", responseObj.itemInfo.item.title);
+		                  registry.byId("mapCData").set("value", cdataText);
+		
+		                  registry.byId("dialogAddWebMap").set("title", "Add Map Layer");
+                          registry.byId("dialogAddWebMap").show();
+						  layerDialog.destroyRecursive();
+                       });
+					
+			   		   
+					});
+                 });  
+    });
+	
+	
+	/*
+	 * Handle the click when selecting a layer
+	 */
+	dojo.connect(dijit.byId("layerSubmit"), 'onClick', function(){
+                    require(["dijit/registry"], function(registry){
+					   registry.byId("dialogAddWebMap").set("title", "Add Map Layer");
+                       registry.byId("dialogAddWebMap").show();
+                    });
+    });
+	
+	
+	/*
+	 * Handle Feature Toggle
+	 */
+	dojo.connect(dijit.byId("featureToggle"), 'onChange', function(checked){
+		if (checked) {
+            //disable the popup click event
+            disablePopups();
+
+            if (featureClickHandler == null) {
+                featureClickHandler = dojo.connect(map, 'onClick', function(evt){
+                    //Get the first visible layer and query against the first sublayer
+                    //In real case, I would create a dropdown for user to pick which layer and sublayer to select from
+                    selectLayer = null;
+                    var layers = responseObj.itemInfo.itemData.operationalLayers;
+                    dojo.some(layers, function (mapLayer, index) {
+                        if (mapLayer.layerObject && mapLayer.layerObject.visible) {
+                            selectLayer = mapLayer.url;
+                            return false;
+                        }
+                    });
+
+                    if (selectLayer == null) {
+                        console.log("No layer to select from. ");
+                        return;
+                    }
+                    var queryURL = selectLayer+'/0';
+                    var queryTask = new esri.tasks.QueryTask(queryURL);
+                    var query = new esri.tasks.Query();
+                    query.returnGeometry = true;
+                    query.outFields = ['OBJECTID'];
+
+                    //Create a box for selection
+                    var centerPoint = new esri.geometry.Point(evt.mapPoint.x,evt.mapPoint.y,evt.mapPoint.spatialReference);
+                    var mapWidth = map.extent.getWidth();
+
+                    //Divide width in map units by width in pixels
+                    var pixelWidth = mapWidth/map.width;
+
+                    //Calculate a 10 pixel envelope width (5 pixel tolerance on each side)
+                    var tolerance = 10 * pixelWidth;
+
+                    //Build tolerance envelope and set it as the query geometry
+                    var queryExtent = new esri.geometry.Extent(1,1,tolerance,tolerance,evt.mapPoint.spatialReference);
+                    query.geometry = queryExtent.centerAt(centerPoint);
+
+                    queryTask.execute(query, function(results){
+                        if (results.features.length != 0)
+                        {
+                            var objectids = '';
+                            var i = 0;
+                            dojo.forEach(results.features, function (feature, index) {
+                                if (i != 0)
+                                    objectids += ',' + feature.attributes['OBJECTID'];
+                                else
+                                    objectids = feature.attributes['OBJECTID'];
+                                i++;
+                            });   
+                            console.log(results.features.length + ' features selected from Layer: '+ queryURL);
+                            console.log('Selecetd features in JSON: '+queryURL+'/query?objectIds='+objectids+'&outFields=*&returnGeometry=true&f=json');
+                            console.log('Selecetd features in KMZ: '+queryURL+'/query?objectIds='+objectids+'&outFields=*&returnGeometry=true&f=KMZ');
+							
+							jsonURL = queryURL+'/query?objectIds='+objectids+'&outFields=*&returnGeometry=true&f=json';
+							kmzURL = queryURL+'/query?objectIds='+objectids+'&outFields=*&returnGeometry=true&f=KMZ';
+							
+							//registry.byId("addMapFeature_button").setAttribute('disabled', false);
+                        }
+                        else
+                            console.log('No feature selected.')
+                    });
+                }); 
+            }
+        }
+        else {
+            dojo.disconnect(featureClickHandler);
+            featureClickHandler = null;
+            enablePopups();
+        }
+    });
+	
+	dojo.connect(dijit.byId("addMapFeature_button"), 'onClick', function(){
+		
+		var cdataText = "<![CDATA[" + "]]>";
+		
+		require(["dijit/registry"], function(registry) {	   
+		   if (responseObj.itemInfo.item.name) {
+		      registry.byId("mapName").set("value", responseObj.itemInfo.item.name);
+	       } else {
+              registry.byId("mapName").set("value", responseObj.itemInfo.item.title);
+	       }
+           registry.byId("mapTitle").set("value", responseObj.itemInfo.item.title);
+		   registry.byId("mapCData").set("value", cdataText);
+						  
+	       registry.byId("dialogAddWebMap").set("title", "Add Map Feature");
+           registry.byId("dialogAddWebMap").show();
+		});	    
+	});
+	
+	dojo.connect(dijit.byId("jsonButton"), "onChange", function(isChecked){
+       if(isChecked){
+           require(["dijit/registry"], function(registry) {	
+		      registry.byId("mapURL").set("value", jsonURL);
+		   });
+       }
+    });
+	
+	dojo.connect(dijit.byId("kmzButton"), "onChange", function(isChecked){
+       if(isChecked){
+           require(["dijit/registry"], function(registry) {	
+		      registry.byId("mapURL").set("value", kmzURL);
+		   });
+       }
+    });
+					
+}
+
+	

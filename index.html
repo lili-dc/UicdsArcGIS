@@ -24,6 +24,7 @@
   <script type="text/javascript" src="javascript/angular.min.js"></script>
   <script type="text/javascript" src="javascript/jquery-1.10.2.min.js"></script>
   <script type="text/javascript" src="javascript/angular-dojo.js"></script>
+  <script type="text/javascript" src="javascript/loading-bar.js"></script>
   <script type="text/javascript" src="javascript/json2xml.js"></script>
   <script type="text/javascript" src="javascript/xmlToJSON.min.js"></script>
 
@@ -33,8 +34,14 @@
   
   <script>
      <!-- Load Angular dojo module -->
-  angular.module('dojoUICDSApp', ['angular-dojo']);
+//  angular.module('dojoUICDSApp', ['angular-dojo','chieffancypants.loadingBar', 'ngAnimate']);
+angular.module('dojoUICDSApp', ['angular-dojo']);
+  
+  <!-- Reference to the workproduct -->
+  var wp = null;
   </script>
+  
+
 
 <!-- END SOR -->
     
@@ -74,7 +81,8 @@
       dojo.require("dijit.dijit");
       dojo.require("dojox.layout.TableContainer");
 	  dojo.require("dojox/layout/ScrollPane");
-
+	  dojo.require("dijit.form.Form");
+      dojo.require("dijit.form.Button");
 
       var i18n;
       dojo.ready(function(){
@@ -83,7 +91,7 @@
         var  defaults = {
         //The ID for the map from ArcGIS.com
         //webmap: "f5b13dbed07c46cdb783cf361833aa6b",
-        webmap: "165b4f9822c949f88af92b4cb1c5bf7f",
+        webmap: "43f04c9657ec40c8acad9ad91736b0ca",
 		//Modify this to point to your sharing service URL if you are using the portal
         sharingurl: "http://www.arcgis.com",//for example: "http://www.arcgis.com",
         //The id for the web mapping application item that contains configuration info - in most
@@ -272,14 +280,19 @@
             <!-- SOR START -->
             <button data-dojo-type="dijit/form/Button" type="button" onClick="uicdsDialog.show();" class="shadow" style="position:absolute; right:20px; top:35px; z-index:38;" showLabel="false" iconClass="uicdsIcon"> UICDS </button>
             
-           <div data-dojo-type="dijit/Dialog" data-dojo-id="uicdsDialog" title="ArcGIS UICDS Widget" style="width: 600px;">
+            <button id="featureToggle" data-dojo-type="dijit/form/ToggleButton" style="position:absolute; right:20px; top:65px; z-index:38;">F</button>
+
+              
+              
+            
+    <div data-dojo-type="dijit/Dialog" data-dojo-id="uicdsDialog" title="ArcGIS UICDS Widget" style="width: 600px;">
       <div data-dojo-type="dijit/layout/BorderContainer" design="sidebar" style="min-width: 1em; min-height: 1px; z-index: 0; width: 100%; height: 330px;">
     <div data-dojo-type="dijit/layout/ContentPane" extractContent="false" preventCache="false" preload="false" refreshOnShow="false" doLayout="true" region="top" splitter="true" maxSize="80" style="height: 30px;" minSize="80" style="position:relative">
     <table>
           <tbody id="tbody_0" class="HtmlWidget">
         <tr>
               <td><label for="uicdsURL"> UICDS URL:</label></td>
-              <td><input value="" type="text" data-dojo-type="dijit/form/TextBox" id="uicdsURL" intermediateChanges="false" trim="false" uppercase="false" lowercase="false" propercase="false" selectOnClick="false" style="width: 20em; left: 7px; top: 8px;">
+              <td><input value="https://uicds.spotonresponse.com" type="text" data-dojo-type="dijit/form/TextBox" id="uicdsURL" intermediateChanges="false" trim="false" uppercase="false" lowercase="false" propercase="false" selectOnClick="false" style="width: 20em; left: 7px; top: 8px;">
             </input></td>
             </tr>
       </tbody>
@@ -289,36 +302,25 @@
     <div style="float:clear"></div>
   </div>
       <div data-dojo-type="dijit/layout/ContentPane" extractContent="false" preventCache="false" preload="false" refreshOnShow="false" doLayout="true" region="right" splitter="true" minSize="95" maxSize="95" style="width: 78px;">
-              <button disabled style="display:inline-block; width: 75px;" id="addWebMap_button" data-dojo-type="dijit/form/Button" type="button">Share<br/>Web<br/>&nbsp;&nbsp;&nbsp;&nbsp;Map&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-				 <script type="dojo/method" data-dojo-event="onClick" data-dojo-args="evt">
-					require(["dijit/registry", "dijit/form/TextBox"], function(registry){ 
-                       registry.byId("dialogAddWebMap").set("title", "Add Web Map");
-					   registry.byId("mapURLBox").set("value", "https://web_map.com");
-					   registry.byId("dialogAddWebMap").show();
-                    });
-                 </script>
+              <button disabled id="addWebMap_button" data-dojo-type="dijit/form/Button" type="button">Share<br/>Web<br/>&nbsp;&nbsp;&nbsp;&nbsp;Map&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;			
               </button>
 
-              <button disabled style="display:block; width: 75px;" id="addMapLayer_button" data-dojo-type="dijit/form/Button" type="button" >Share<br/>Map<br/>&nbsp;&nbsp;&nbsp;Layer&nbsp;&nbsp;&nbsp;&nbsp;
-                 <script type="dojo/method" data-dojo-event="onClick" data-dojo-args="evt">
-                    require(["dijit/registry"], function(registry){
-					   registry.byId("dialogAddWebMap").set("title", "Add Map Layer");
-					   registry.byId("mapURLBox").set("value", "https://map_layer.com");
-                       registry.byId("dialogAddWebMap").show();
-                    });
-                 </script>
+
+              <button disabled id="addMapLayer_button" data-dojo-type="dijit/form/Button" type="button" >Share<br/>Map<br/>&nbsp;&nbsp;&nbsp;Layer&nbsp;&nbsp;&nbsp;&nbsp;
               </button>
+			  		  
+			  
               <button disabled id="addMapFeature_button" data-dojo-type="dijit/form/Button" type="button">Share<br/>
               Map<br/>&nbsp;&nbsp;Feature&nbsp;&nbsp;
               <script type="dojo/method" data-dojo-event="onClick" data-dojo-args="evt">
-                    require(["dijit/registry"], function(registry){
-					   registry.byId("dialogAddWebMap").set("title", "Add Web Feature");
-					   registry.byId("mapURLBox").set("value", "https://map_feature.com");
-                       registry.byId("dialogAddWebMap").show();
-                    });
+                    $("#ofButtons").show();
+					$("#mapURL").val(jsonURL);
+					$("#jsonButton").prop("checked", true);	
                  </script>
               </button>
-              <button id="createIncident_button" data-dojo-type="dijit/form/Button" type="button">Create<br/>New<br/>&nbsp;&nbsp;Incident&nbsp;
+              
+              
+              <button disabled id="createIncident_button" data-dojo-type="dijit/form/Button" type="button">Create<br/>New<br/>&nbsp;&nbsp;Incident&nbsp;
                  <script type="dojo/method" data-dojo-event="onClick" data-dojo-args="evt">
                     require(["dijit/registry"], function(registry){
 						registry.byId("ci_dt").setValue(new Date());
@@ -335,20 +337,40 @@
               </button>
   </div>
   
-              <!-- Add Map Web, Layer or Feature Dialog -->
-              <div id="dialogAddWebMap" data-dojo-type="dijit/Dialog" title="" style="width:400px;">      
-                 <div data-dojo-type="dojox.layout.TableContainer" data-dojo-props="cols:1" id="tc1">
-                    <div data-dojo-type="dijit.form.TextBox" title="Map URL:" value="" id="mapURLBox"></div>
+              <!-- Add Map Web, Layer Dialog -->
+                <script>
+     function setFeatureMapURL(url) {
+		 console.log("Got URL: " + url);
+		if (url === "json") {
+			useURL = jsonURL;
+		} else {
+			useURL = kmzURL;
+		}
+		$("#mapURL").val(useURL);
+	 }
+	 
+   </script>
+              <div id="dialogAddWebMap" data-dojo-type="dijit/Dialog" title="" style="width:400px;">     
+                 <form id=="mapForm" dojoType="dijit.form.Form" jsId="mapForm">
+                  <div data-dojo-type="dojox.layout.TableContainer" data-dojo-props="cols:1" id="tc1">
                     <div data-dojo-type="dijit.form.TextBox" title="Referenced IG:" value="" id="igidBox"></div>
-                    <div data-dojo-type="dijit.form.TextBox" title="Layer Name:" value=""></div>
-                    <div data-dojo-type="dijit.form.TextBox" title="Layer Title:" value=""></div>
-                    <div data-dojo-type="dijit.form.TextBox" title="Abstract:" value=""></div>
-                    <div data-dojo-type="dijit.form.TextBox" title="SRS:" value=""></div>
+                    <div data-dojo-type="dijit.form.TextBox" title="Map URL:" value="" id="mapURL"></div>
+                    <div id="ofButtons" data-dojo-type="dojox.layout.TableContainer" data-dojo-props="cols:1">
+                       <div data-dojo-type="dijit/form/RadioButton" title="JSON" name="ouputFormat" id="jsonButton" value="json"></div>
+                       <div data-dojo-type="dijit/form/RadioButton" title="KMZ" name="ouputFormat" id="kmzButton" value="kmz"></div>
+                    </div>
+                    <div data-dojo-type="dijit.form.TextBox" title="Map Name:" value="" id="mapName"></div>
+                    <div data-dojo-type="dijit.form.TextBox" title="Map Title:" value="" id="mapTitle"></div>
+                    <div data-dojo-type="dijit.form.TextBox" title="Map Format:" value="" id="mapFormat"></div>
+                    <div data-dojo-type="dijit.form.TextBox" title="SRS:" value="EPSG:4326" id="mapSRS"></div>
+                    <div data-dojo-type="dijit.form.TextBox" title="CDATA:" value="" id="mapCData"></div>
                  </div>
-                 <div data-dojo-type="dijit/form/Button" label="Submit"></div>
+                 </form>
+                 <button ng-click="submitMap();">Submit</button>
               </div>
               <!-- END Add Map Web, Layer or Feature Dialog -->
-
+              
+              
               <!-- This is the Create Incident Dialog -->
               <div id="dialogCreateIncident" data-dojo-type="dijit/Dialog" title="Create Incident" style="width:400px;">   
                  <div data-dojo-type="dojox.layout.TableContainer" data-dojo-props="cols:1" id="tc2">
@@ -365,6 +387,9 @@
                     <div data-dojo-type="dijit.form.TextBox" title="Status:" id="ci_status"></div>
                     <div data-dojo-type="dijit.form.TextBox" title="Reason:" id="ci_reason"></div>
                     <div data-dojo-type="dijit.form.TextBox" title="Disposition:" id="ci_disposition"></div>
+                    <div data-dojo-type="dijit.form.TextBox" title="Map URL:" value="" id="ci_mapURL"></div>
+                    <div data-dojo-type="dijit.form.TextBox" title="Map Name:" value="" id="ci_mapName"></div>
+                    <div data-dojo-type="dijit.form.TextBox" title="Map Title:" value="" id="ci_mapTitle"></div>
                  </div>
                  <div data-dojo-type="dijit/form/Button" label="Submit" id="ci_submit"></div>
               </div>
@@ -382,9 +407,9 @@
       <div data-dojo-type="dojox/layout/ContentPane" extractContent="false" preventCache="false" preload="false" refreshOnShow="false" doLayout="true" region="center" splitter="true" style="overflow:scroll">
       
        <table ng-table="tableParams" id="incidents" >
-    <tbody ng-repeat="workproduct in workproducts" ng-click="getDetails2(workproducts.indexOf(workproduct))" class="{{selected}}">
-        <tr class="ng-table-group" ng-class-odd="'alt'">
-            <td >
+    <tbody ng-repeat="workproduct in workproducts" ng-click="getDetails2(workproducts.indexOf(workproduct))" class="{{selected}}" style="padding:1px">
+        <tr class="ng-table-group" ng-class-odd="'alt'" style="padding:1px">
+            <td>
                <strong>{{workproduct.PackageMetadata[0].WorkProductProperties[0].AssociatedGroups[0].Identifier[0].text}}</strong>
             </td>
             <td>
