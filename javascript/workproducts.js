@@ -117,11 +117,7 @@ function WorkProductsController($scope, $http) {
     };
 
 
-    $scope.getDetails2 = function (workproduct) {
-
-
-        username = $("#username").val();
-        pass = $("#password").val();
+    $scope.getWPDetails = function (workproduct) {
 
 
         //Get the IgID
@@ -134,6 +130,7 @@ function WorkProductsController($scope, $http) {
 			   registry.byId("addMapFeature_button").setAttribute('disabled', false);
 			}
             registry.byId("createIncident_button").setAttribute('disabled', false);
+			registry.byId("addMyContent_button").setAttribute('disabled', false);
             registry.byId("igidBox").setValue(IgID);
 
         });
@@ -144,8 +141,6 @@ function WorkProductsController($scope, $http) {
         }
         this.selected = 'selected';
         $scope.lastSelected = this;
-
-
 
         $scope.currentWorkProduct = $scope.workproducts.indexOf(workproduct);
         $scope.selectedWorkProduct = $scope.currentWorkProduct;
@@ -159,7 +154,6 @@ function WorkProductsController($scope, $http) {
         }
 
         // render request
-        //var xml = Mustache.render(xmlGetProductTmpl, wp_data);
         var xml = "";
         require(["dojo/_base/lang", "dojo/dom", "dojo/domReady!"], function (lang, dom) {
             xml = lang.replace(xmlGetProductTmpl, wp_data);
@@ -177,8 +171,11 @@ function WorkProductsController($scope, $http) {
         }).
         success(function (data, status, headers, config) {
             var result = xmlToJSON.parseString(data);
-            console.log('GetDetails2:  IgID: ' + IgID);
-
+			var inc_name = result.Envelope[0].Body[0].GetProductResponse[0].WorkProduct[0].Digest[0].Event[0].Identifier[0].text;
+			var inc_desc = result.Envelope[0].Body[0].GetProductResponse[0].WorkProduct[0].Digest[0].Event[0].Descriptor[0].text;
+            $("#incident_name").val(inc_name);
+			$("#incident_descriptor").val(inc_desc);
+			
             var wp_data = {
                 igid: IgID
             }
@@ -207,8 +204,14 @@ function WorkProductsController($scope, $http) {
     $scope.submitMap = function () {
         IgID = $("#igidBox").val()
 
-        require(["dijit/registry"], function(registry){
-			registry.byId("dialogAddWebMap").hide();
+      //  require(["dijit/registry"], function(registry){
+	  //		registry.byId("dialogAddWebMap").hide();
+      //  });
+	  
+	  
+	  // Show the Standby Spinner
+	    require(["dijit/registry"], function(registry){
+	  		registry.byId("dialogAddWebMapStandby").show();
         });
 		
         var wp_data = {
@@ -272,8 +275,6 @@ function WorkProductsController($scope, $http) {
                             "Content-Type": "text/xml"
                         },
                         withCredentials: true,
-                        user: username,
-                        password: pass,
                         data: xml
                     }).
                     success(function (data, status, headers, config) {
@@ -321,23 +322,35 @@ function WorkProductsController($scope, $http) {
                     error(function (data, status, headers, config) {
                         // called asynchronously if an error occurs
                         // or server returns response with an error status.
-                        alert('SubmitMap: An error occured while fetching the MapView. Error code: ' + status);
+                        require(["dijit/registry"], function(registry){
+	  		               registry.byId("dialogAddWebMapStandby").hide();
+						   registry.byId("dialogAddWebMap").hide();
+                        });
+						
+						alert('SubmitMap: An error occured while fetching the MapView. Error code: ' + status);
                         console.debug("DATA:" + data);
-                   console.debug("STATUS: " + status);
-            console.debug("HEADERS: " + headers);
-            console.debug("CONFIG: " + config);
-
+                        console.debug("STATUS: " + status);
+                        console.debug("HEADERS: " + headers);
+                        console.debug("CONFIG: " + config);
                     });;
                 } else { // if MapViewContext
                     /*
                      * Current Incident does not have a MapViewContext so we will need to create one
                      */
                     $("#getData").modal('toggle');
+					require(["dijit/registry"], function(registry){
+	  		               registry.byId("dialogAddWebMapStandby").hide();
+						   registry.byId("dialogAddWebMap").hide();
+                    });
                     alert("No Default MapContext");
 
                 }
                 
             } else {
+		       require(["dijit/registry"], function(registry){
+	              registry.byId("dialogAddWebMapStandby").hide();
+				  registry.byId("dialogAddWebMap").hide();
+			   });
 			   alert('ERROR!!! No WorkProduct! Note the selected IG and contact the Administrator');
 			}
         }).error(function (data, status, headers, config) {
@@ -348,7 +361,10 @@ function WorkProductsController($scope, $http) {
             console.debug("STATUS: " + status);
             console.debug("HEADERS: " + headers);
             console.debug("CONFIG: " + config);
-			
+			require(["dijit/registry"], function(registry){
+	              registry.byId("dialogAddWebMapStandby").hide();
+				  registry.byId("dialogAddWebMap").hide();
+			});
 			alert('SubmitMap: An error occured fetching WorkProducts for the Incident. Error code: ' + status);
 
         });
@@ -362,11 +378,9 @@ function WorkProductsController($scope, $http) {
     }
 
     $scope.submitMapData = function () {
-      //  $("#dialogCreateIncident").modal('toggle');
-
-        username = $("#username").val();
-        pass = $("#password").val();
-		
+	    require(["dijit/registry"], function(registry){
+	       registry.byId("dialogAddWebMapStandby").show();
+	    });
         var url = encodeURIComponent($("#mapURL").val());
         var name = $("#mapTitle").val();
         var title = $("#mapName").val();
@@ -408,17 +422,25 @@ function WorkProductsController($scope, $http) {
                 "Content-Type": "text/xml"
             },
             withCredentials: true,
-            user: username,
-            password: pass,
             data: xml
         }).
         success(function (data, status, headers, config) {
             //viewRawXML(data);
+			alert("Successfully added");
+			require(["dijit/registry"], function(registry){
+	              registry.byId("dialogAddWebMapStandby").hide();
+				  registry.byId("dialogAddWebMap").hide();
+			});
 			
         }).error(function (data, status, headers, config) {
+			$("#dialogAddWebMapStandby").hide();
             // called asynchronously if an error occurs
             // or server returns response with an error status.
-            alert('SubmitMapData: An error occured submitting data to UICDS. Error code: ' + status);
+            require(["dijit/registry"], function(registry){
+	              registry.byId("dialogAddWebMapStandby").hide();
+				  registry.byId("dialogAddWebMap").hide();
+			});
+			alert('SubmitMapData: An error occured submitting data to UICDS. Error code: ' + status);
 			console.debug("XML:" + xml);
             console.debug("DATA: " + data);
             console.debug("STATUS: " + status);

@@ -607,3 +607,10 @@ background-image:none !important;
 	width: 45%;
 }
 
+
+.contentTable-valueCell {
+	width: 50%;
+}
+.contentTable-labelCell {
+	width: 50%;
+}

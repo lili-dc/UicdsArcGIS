@@ -2,10 +2,16 @@ dojo.require("esri.widgets");
 dojo.require("esri.arcgis.utils");
 dojo.require("dojox.layout.FloatingPane");
 dojo.require("utilities.custommenu");
-
+dojo.require("esri.toolbars.draw");
 dojo.require("apl.ElevationsChart.Pane");
+dojo.require("esri.tasks.identify");
+dojo.require("dojo.request");
 
-var map;
+var map, tb;
+var markerSymbol, selectPointSymbol, selectPolylineSymbol, selectPolygonSymbol;
+var selectLayer, selectLayerID;
+var featuresJSONStr;
+var drawLayer;
 var clickHandler, clickListener;
 var editLayers = [],
     editorWidget;
@@ -264,9 +270,11 @@ function createMap(webmapitem) {
 
         if (map.loaded) {
             initUI(response);
+            initToolbar();
         } else {
             dojo.connect(map, "onLoad", function () {
                 initUI(response);
+                initToolbar();
             });
         }
 
@@ -296,6 +304,151 @@ function createMap(webmapitem) {
     mapDeferred.addErrback(function (error) {
         alert(i18n.viewer.errors.createMap + " : " + dojo.toJson(error.message));
     });
+}
+
+function initToolbar() {
+    drawLayer = new esri.layers.GraphicsLayer();
+    map.addLayer(drawLayer);
+
+    tb = new esri.toolbars.Draw(map);
+    esri.bundle.toolbars.draw.addPoint = "Click on a feature to select";
+    dojo.connect(tb, "onDrawEnd", selectFeatures);
+    var red = new dojo.Color(dojo.Color.named.red);
+    var yellow = new dojo.Color(dojo.Color.named.yellow);
+    var outline = new esri.symbol.SimpleLineSymbol(esri.symbol.SimpleLineSymbol.STYLE_SOLID, red, 2);
+    markerSymbol = new esri.symbol.SimpleMarkerSymbol(esri.symbol.SimpleMarkerSymbol.STYLE_X, 10, outline, red);
+    //areaSymbol = 
+    
+    selectPointSymbol = new esri.symbol.SimpleMarkerSymbol(esri.symbol.SimpleMarkerSymbol.STYLE_SQUARE, 10, outline, yellow);
+    selectPolylineSymbol = new esri.symbol.SimpleLineSymbol(esri.symbol.SimpleLineSymbol.STYLE_SOLID, red, 2);
+    selectPolygonSymbol = new esri.symbol.SimpleFillSymbol(esri.symbol.SimpleFillSymbol.STYLE_SOLID, new esri.symbol.SimpleLineSymbol(esri.symbol.SimpleLineSymbol.STYLE_SOLID, red, 2), new dojo.Color([255, 255, 0, 0.25]));
+}
+
+function selectFeatures(geom)
+{
+    tb.deactivate(); 
+    map.enableMapNavigation();
+    enablePopups();
+    drawLayer.clear();
+
+    selectLayer = getVisibleLayers()[0];
+    selectLayerID = "";
+    kmzURL = "";
+    //A layer can be feature service layer or map sevrice layer
+    //use selectFeatures on feature service layer to select
+    //use identify on map service layer to select on multiple sublayers
+    if (selectLayer.url.indexOf("FeatureServer") != -1) {
+        query = new esri.tasks.Query();
+        query.geometry = geom;
+        map.getLayer(selectLayer.id).selectFeatures(query, esri.layers.FeatureLayer.SELECTION_NEW);
+        objIdField = getObjIDField(map.getLayer(selectLayer.id).getSelectedFeatures()[0]);
+        var features = [];
+        dojo.forEach(map.getLayer(selectLayer.id).getSelectedFeatures(), function(feature, index) {
+            features.push(feature);
+            var graphic = feature;
+            if (feature.geometry.type === 'point') 
+                graphic.symbol = selectPointSymbol;
+            else if(feature.geometry.type === 'polyline')
+                graphic.symbol = selectPolylineSymbol;
+            else if(feature.geometry.type === 'polygon')
+                graphic.symbol = selectPolygonSymbol;
+
+            drawLayer.add(graphic);
+        });
+        map.getLayer(selectLayer.id).clearSelection();
+        map.getLayer(selectLayer.id).refresh();
+        drawLayer.refresh();
+        showResult();
+    }
+    else if (selectLayer.url.indexOf("MapServer") != -1) {
+        identifyTask = new esri.tasks.IdentifyTask(selectLayer.url);
+
+        identifyParams = new esri.tasks.IdentifyParameters();
+        identifyParams.tolerance = 3;
+        identifyParams.returnGeometry = true;
+        identifyParams.layerOption = esri.tasks.IdentifyParameters.LAYER_OPTION_TOP;
+        identifyParams.width = map.width;
+        identifyParams.height = map.height;
+
+        identifyParams.geometry = geom;
+        identifyParams.mapExtent = map.extent;
+        identifyTask.execute(identifyParams, function (idResults) {
+            selectLayerID = idResults[0].layerId;
+            if (idResults.length > 0) {
+                featuresJSONStr = dojo.toJson(idResults);
+                selectLayerID = idResults[0].layerId;
+                for (var i = 0, il = idResults.length; i < il; i++) {
+                    var idResult = idResults[i];
+                    var graphic = idResult.feature;
+                    if (idResult.feature.geometry.type === 'point') 
+                        graphic.symbol = selectPointSymbol;
+                    else if(idResult.feature.geometry.type === 'polyline')
+                        graphic.symbol = selectPolylineSymbol;
+                    else if(idResult.feature.geometry.type === 'polygon')
+                        graphic.symbol = selectPolygonSymbol;
+
+                    drawLayer.add(graphic);
+                }
+                showResult();
+            }
+        });
+    }   
+}
+
+function showResult() {
+    var objIdField = '';
+    objIdField = getObjIDField(drawLayer.graphics[0]);
+    objectids = getObjectIDs(objIdField);
+
+    var featureSet = new esri.tasks.FeatureSet();
+    featureSet.features = drawLayer.graphics;
+    featuresJSONStr = dojo.toJson(featureSet.toJson());
+
+    if (selectLayerID != "") {
+        jsonURL = selectLayer.url+'/'+selectLayerID+'/query?objectIds='+objectids+'&outFields=*&returnGeometry=true&f=json';
+        kmzURL = selectLayer.url+'/'+selectLayerID+'/query?objectIds='+objectids+'&outFields=*&returnGeometry=true&f=KMZ';
+    }
+    else {
+        //There is no KML output for feature service layer
+        jsonURL = selectLayer.url+'/query?objectIds='+objectids+'&outFields=*&returnGeometry=true&f=json';
+    }
+   
+    console.log('jsonURL: '+jsonURL);
+    console.log('kmzURL: '+kmzURL);
+    console.log('featuresJSONStr: '+featuresJSONStr);   
+}
+
+function getObjectIDs (objIdField) {
+    var i = 0;
+    var objectids = '';
+    dojo.forEach(drawLayer.graphics, function(graphic, index) {
+        if (i != 0)
+            objectids += ',' + graphic.attributes[objIdField];
+        else
+            objectids = graphic.attributes[objIdField];
+        i++;
+    });
+    return objectids;
+}
+
+function getObjIDField (graphic) {
+    if (graphic.attributes['OBJECTID'])
+        objIdField = 'OBJECTID';
+    else if (graphic.attributes['ObjectID'])
+        objIdField = 'ObjectID';
+
+    return objIdField;
+}
+
+function getVisibleLayers() {
+    var visibleLayers = [];
+    var layers = responseObj.itemInfo.itemData.operationalLayers;
+    dojo.some(layers, function (mapLayer, index) {
+        if (mapLayer.layerObject && mapLayer.layerObject.visible) {
+            visibleLayers.push(mapLayer);
+        }
+    });
+    return visibleLayers;
 }
 
 function isValidExtent(extent) {
@@ -2084,84 +2237,151 @@ function leidosDemo() {
 	
 	
 	/*
-	 * Handle Feature Toggle
+	 * Handle Feature Select
 	 */
-	dojo.connect(dijit.byId("featureToggle"), 'onChange', function(checked){
-		if (checked) {
-            //disable the popup click event
-            disablePopups();
-
-            if (featureClickHandler == null) {
-                featureClickHandler = dojo.connect(map, 'onClick', function(evt){
-                    //Get the first visible layer and query against the first sublayer
-                    //In real case, I would create a dropdown for user to pick which layer and sublayer to select from
-                    selectLayer = null;
-                    var layers = responseObj.itemInfo.itemData.operationalLayers;
-                    dojo.some(layers, function (mapLayer, index) {
-                        if (mapLayer.layerObject && mapLayer.layerObject.visible) {
-                            selectLayer = mapLayer.url;
-                            return false;
-                        }
-                    });
-
-                    if (selectLayer == null) {
-                        console.log("No layer to select from. ");
-                        return;
-                    }
-                    var queryURL = selectLayer+'/0';
-                    var queryTask = new esri.tasks.QueryTask(queryURL);
-                    var query = new esri.tasks.Query();
-                    query.returnGeometry = true;
-                    query.outFields = ['OBJECTID'];
-
-                    //Create a box for selection
-                    var centerPoint = new esri.geometry.Point(evt.mapPoint.x,evt.mapPoint.y,evt.mapPoint.spatialReference);
-                    var mapWidth = map.extent.getWidth();
-
-                    //Divide width in map units by width in pixels
-                    var pixelWidth = mapWidth/map.width;
-
-                    //Calculate a 10 pixel envelope width (5 pixel tolerance on each side)
-                    var tolerance = 10 * pixelWidth;
-
-                    //Build tolerance envelope and set it as the query geometry
-                    var queryExtent = new esri.geometry.Extent(1,1,tolerance,tolerance,evt.mapPoint.spatialReference);
-                    query.geometry = queryExtent.centerAt(centerPoint);
-
-                    queryTask.execute(query, function(results){
-                        if (results.features.length != 0)
-                        {
-                            var objectids = '';
-                            var i = 0;
-                            dojo.forEach(results.features, function (feature, index) {
-                                if (i != 0)
-                                    objectids += ',' + feature.attributes['OBJECTID'];
-                                else
-                                    objectids = feature.attributes['OBJECTID'];
-                                i++;
-                            });   
-                            console.log(results.features.length + ' features selected from Layer: '+ queryURL);
-                            console.log('Selecetd features in JSON: '+queryURL+'/query?objectIds='+objectids+'&outFields=*&returnGeometry=true&f=json');
-                            console.log('Selecetd features in KMZ: '+queryURL+'/query?objectIds='+objectids+'&outFields=*&returnGeometry=true&f=KMZ');
-							
-							jsonURL = queryURL+'/query?objectIds='+objectids+'&outFields=*&returnGeometry=true&f=json';
-							kmzURL = queryURL+'/query?objectIds='+objectids+'&outFields=*&returnGeometry=true&f=KMZ';
-							
-							//registry.byId("addMapFeature_button").setAttribute('disabled', false);
-                        }
-                        else
-                            console.log('No feature selected.')
-                    });
-                }); 
-            }
-        }
+	dojo.connect(dojo.byId("pointTool"), 'onclick', function(evt){
+        if (getVisibleLayers().length != 1)
+            alert('Please make one layer visible.');
         else {
-            dojo.disconnect(featureClickHandler);
-            featureClickHandler = null;
-            enablePopups();
+            disablePopups();
+            map.disableMapNavigation();
+            tb.activate('point');
         }
     });
-	
+
+    dojo.connect(dojo.byId("areaTool"), 'onclick', function(evt){
+        if (getVisibleLayers().length != 1)
+            alert('Please make one layer visible.');
+        else {
+            disablePopups();
+            map.disableMapNavigation();
+            tb.activate('extent');
+        }
+    });
+
+    dojo.connect(dojo.byId("content_submit"), 'onclick', function(evt){
+        /* Startup the Standby Spinner */
+		myContentStandby.show();
+		
+		var username = "";
+		
+		var incidentName = $("#incident_name").val();
+		var incidentDescriptor = $("#incident_descriptor").val();
+		var uicds_base = $("#uicdsURL").val() + "/uicds";
+		var ig = $("#igidBox").val();
+		
+		var description = '';
+		var title = '';
+		var tags = '';
+		var url = '';
+		
+		
+		/* 
+		 * Get the selected type to add to My Content
+		 *  - set the variables appropriately
+		 */
+		var contentType = $("input[name=contentSelection]:checked").val();
+		if (contentType == "contentIncident")
+		console.log("Content Value: " + contentType);
+		switch (contentType) {
+            case 'contentIncident':
+			   title = incidentName + " – Incident";
+			   description = "This URL is to a KML feed that contains the " + incidentName + " Incident Share Product you have selected.";
+			   tags = "emergency,  " + incidentName;
+			   url = uicds_base +  "/pub/search?format=kml&productType=Incident&interestGroup=" + ig;
+			   break;
+			case 'contentIncidentSoi':
+			   title = incidentName + " – Incident and Observations";
+			   description = "This URL is to a KML feed that contains the " + incidentName + " Incident Share Product you have selected plus the Sensor Observation Share Product containing field observations or sensor data.";
+			   tags = "emergency,  " + incidentName + ", human sensor, sensor";
+			   url = uicds_base + "/pub/search?format=kml&productType=Incident&productType=SOI&interestGroup=" + ig;
+			   break;
+			case 'contentIncidentMap':
+			   title = incidentName + " – Incident and Map Context Geospatial Sources";
+			   description = "This URL is to a KML feed that contains the " + incidentName + " Incident Share Product you have selected plus the Map Context Share Product containing associated geospatial information related to the incident.";
+			   tags = "emergency, " + incidentName + ", geospatial, GIS, map";
+			   url = uicds_base +  "/pub/search?format=kml&productType=Incident&productType=MapViewContext&interestGroup=" + ig;
+			   break;
+			case 'contentIncidentAll':
+			   title = incidentName + " – All Share Products";
+			   description = "This URL is to a KML feed that contains all " + incidentName + " Share Products which you can adapt to select specific products.";
+			   tags = "emergency, " + incidentName;
+			   url = uicds_base + "/pub/search?format=kml&productType=Incident&productType=SOI&productType=Alert&productType=MapViewContext&productType=CommitResource&productType=RequestResource&interestGroup=" + ig;
+			   break;
+		}
+			
+			
+		console.log("URL is: " + url);
+		//try to access a restricted content
+        var contentRequest = esri.request({
+          url: configOptions.sharingurl + "/sharing/rest/content/users/lli_spoton",
+          content: { f: "json" },
+          handleAs: "json",
+          callbackParamName: "callback"
+        });
+        contentRequest.then(
+            function(response) {
+                console.log("Success: ", response);
+                var userInfoRequest = esri.request({
+                url: configOptions.sharingurl + "/sharing/rest/portals/self",
+                    content: { f: "json" },
+                    handleAs: "json",
+                    callbackParamName: "callback"
+                });
+                userInfoRequest.then(
+                    function(response) {
+                        console.log("Success: ", response);
+                        if (response.user) {
+                            username = response.user.username;
+                            //Add content
+                            var layersRequest = esri.request({
+                                url: configOptions.sharingurl + "/sharing/rest/content/users/"+username+"/addItem",
+                                content: {
+						           f: "json",
+                                   type: "KML",
+                                   url: url,   
+                                   title: title,
+						           description: description,
+						           tags: tags,
+                                   spatialReference: "3857",
+                                   extent: "-117,-14,174,71"
+                                },
+                                handleAs: "json",
+                                callbackParamName: "callback"
+                            }, {usePost: true});
+                            
+                            layersRequest.then(
+                                function(response) {
+                                    console.log("Success: ", "Item "+response.id+" is added successfully.");
+                                    alert("Item "+response.id+" added successfully.");
+									myContentStandby.hide();
+									dialogAddMyContent.hide();
+                                }, function(error) {
+                                    alert("An error occurred adding to my content. Error: " + error);
+									myContentStandby.hide();
+									dialogAddMyContent,hide();
+                                }
+                            );
+                        }
+                        else {
+                            alert("User is not logged in.")
+							myContentStandby.hide();
+                        }
+                    },
+                    function(error) {
+                        console.log("Error: ", error.message);
+						myContentStandby.hide();
+                    }
+                );
+            },
+            function(error) {
+                console.log("Error: ", error.message);
+                alert("Please log in to add content.");
+            }
+        );	
+	 });
+
+
 	dojo.connect(dijit.byId("addMapFeature_button"), 'onClick', function(){
 		
 		var cdataText = "<![CDATA[" + "]]>";
