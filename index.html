@@ -276,7 +276,7 @@
                     <button id="pointTool" style="position:absolute; right:20px; top:65px; width: 60px; z-index:38;">Point</button>
                     <button id="areaTool" style="position:absolute; right:20px; top:90px; width: 60px; z-index:38;">Area</button>
 
-                    <div data-dojo-type="dijit/Dialog" data-dojo-id="uicdsDialog" title="ArcGIS UICDS Widget" style="width: 600px;">
+                    <div data-dojo-type="dijit/Dialog" data-dojo-id="uicdsDialog" id="uicdsDialog" title="ArcGIS UICDS Widget" style="width: 600px;">
                         <div data-dojo-type="dijit/layout/BorderContainer" design="sidebar" style="min-width: 1em; min-height: 1px; z-index: 0; width: 100%; height: 330px;">
                             <div data-dojo-type="dijit/layout/ContentPane" extractContent="false" preventCache="false" preload="false" refreshOnShow="false" doLayout="true" region="top" splitter="true" maxSize="80" style="height: 30px;" minSize="80" style="position:relative">
                                 <table>
@@ -450,6 +450,7 @@
 
     <div jsId="myContentStandby" dojoType="dojox.widget.Standby" target="dialogAddMyContent">
     <div jsId="dialogAddWebMapStandby" id="dialogAddWebMapStandby" dojoType="dojox.widget.Standby" target="dialogAddWebMap">
+    <div jsId="dialogAddGetIncidentsStandby" id="dialogAddGetIncidentsStandby" dojoType="dojox.widget.Standby" target="uicdsDialog">
 
         <div id="bottomPane" dojotype="dijit.layout.ContentPane" region="bottom" gutters="false" style="display:none;margin:10px 5px;width:auto;height:275px;background-color:white;">
             This is the bottom

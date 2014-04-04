@@ -47,7 +47,13 @@ function WorkProductsController($scope, $http) {
     }];
 
 
-    $scope.init = function () {  
+    $scope.init = function () { 
+	 
+	 // Show the Standby Spinner
+	    require(["dijit/registry"], function(registry){
+	  		registry.byId("dialogAddGetIncidentsStandby").show();
+        });
+		
 		$("#ofButtons").hide();
 		$("#jsonButton").prop("checked", true);	
 		$scope.refresh();
@@ -99,6 +105,10 @@ function WorkProductsController($scope, $http) {
                 $scope.section($scope.currentWorkproduct);
 
             }
+			
+			require(["dijit/registry"], function(registry){
+	  		   registry.byId("dialogAddGetIncidentsStandby").hide();
+            });
 
             // Debugging:
             // console.log("XML: " + data);
@@ -113,7 +123,13 @@ function WorkProductsController($scope, $http) {
             console.debug(headers);
             console.debug(config);
 
+            require(["dijit/registry"], function(registry){
+	  		   registry.byId("dialogAddGetIncidentsStandby").hide();
+            });
+		
         });
+		
+		
     };
 
 

@@ -2314,7 +2314,7 @@ function leidosDemo() {
 		console.log("URL is: " + url);
 		//try to access a restricted content
         var contentRequest = esri.request({
-          url: configOptions.sharingurl + "/sharing/rest/content/users/lli_spoton",
+          url: configOptions.sharingurl + "/sharing/rest/content/users/morentzj",
           content: { f: "json" },
           handleAs: "json",
           callbackParamName: "callback"
@@ -2359,7 +2359,7 @@ function leidosDemo() {
                                 }, function(error) {
                                     alert("An error occurred adding to my content. Error: " + error);
 									myContentStandby.hide();
-									dialogAddMyContent,hide();
+									dialogAddMyContent.hide();
                                 }
                             );
                         }
@@ -2376,7 +2376,8 @@ function leidosDemo() {
             },
             function(error) {
                 console.log("Error: ", error.message);
-                alert("Please log in to add content.");
+                alert("Please log in to add content. - error: " + error.message);
+				dialogAddMyContent.hide();
             }
         );	
 	 });
