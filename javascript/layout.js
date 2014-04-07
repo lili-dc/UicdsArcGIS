@@ -324,6 +324,20 @@ function initToolbar() {
     selectPolygonSymbol = new esri.symbol.SimpleFillSymbol(esri.symbol.SimpleFillSymbol.STYLE_SOLID, new esri.symbol.SimpleLineSymbol(esri.symbol.SimpleLineSymbol.STYLE_SOLID, red, 2), new dojo.Color([255, 255, 0, 0.25]));
 }
 
+function setTolerance(centerPoint) {
+    var mapWidth = map.extent.getWidth();
+
+    //Divide width in map units by width in pixels
+    var pixelWidth = mapWidth/map.width;
+
+    //Calculate a 10 pixel envelope width (5 pixel tolerance on each side)
+    var tolerance = 10 * pixelWidth;
+
+    //Build tolerance envelope and set it as the query geometry
+    var queryExtent = new esri.geometry.Extent(1,1,tolerance,tolerance,centerPoint.spatialReference);
+    return queryExtent.centerAt(centerPoint);
+}
+
 function selectFeatures(geom)
 {
     tb.deactivate(); 
@@ -339,7 +353,11 @@ function selectFeatures(geom)
     //use identify on map service layer to select on multiple sublayers
     if (selectLayer.url.indexOf("FeatureServer") != -1) {
         query = new esri.tasks.Query();
-        query.geometry = geom;
+        if (geom.type === 'point')
+            query.geometry =setTolerance(geom);
+        else
+            query.geometry = geom
+
         map.getLayer(selectLayer.id).selectFeatures(query, esri.layers.FeatureLayer.SELECTION_NEW);
         objIdField = getObjIDField(map.getLayer(selectLayer.id).getSelectedFeatures()[0]);
         var features = [];
@@ -404,7 +422,7 @@ function showResult() {
     featureSet.features = drawLayer.graphics;
     featuresJSONStr = dojo.toJson(featureSet.toJson());
 
-    if (selectLayerID != "") {
+    if (selectLayerID !== "") {
         jsonURL = selectLayer.url+'/'+selectLayerID+'/query?objectIds='+objectids+'&outFields=*&returnGeometry=true&f=json';
         kmzURL = selectLayer.url+'/'+selectLayerID+'/query?objectIds='+objectids+'&outFields=*&returnGeometry=true&f=KMZ';
     }
